@@ -1843,12 +1843,10 @@ class ssccoorriinngg():
     
     
     #%% Add time-dependency to the featureset
-    def add_time_dependence_backward(self, featureset, n_time_dependence=3,
-                                        padding_type = 'sequential'):
+    def add_time_dependence_backward(self, featureset, n_time_dependence=3, padding_type = "sequential"):
         
-        ''' n_time_dependece (only backward): 
-            number of epochs preceding the current investigational epoch.
-            '''
+        ''' n_time_dependece (only backward): number of epochs preceding the current investigational epoch.'''
+            
         # Calculate number of features (columns)
         nf = np.shape(featureset)[1]
         #time dependence

@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Thu May 28 12:16:48 2020
 
-@author: mahjaf
+# =============================================================================
+# Created on Thu May 28 12:16:48 2020
+# 
+# @author: mahjaf
+# 
+# Zzzscoring: A GUI-based package for sleep scoring!
+# =============================================================================
 
-Zzzscoring: A GUI-based package for sleep scoring!
-
-"""
-from tkinter import *
 from tkinter import LabelFrame, Label, Button, filedialog, messagebox,OptionMenu, StringVar,DoubleVar
+from tkinter import *
 import mne
 import numpy as np
 from   numpy import loadtxt
@@ -17,6 +18,7 @@ from ssccoorriinngg import ssccoorriinngg
 import matplotlib.pyplot as plt
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import RandomizedSearchCV
+
 
 class Zzzscoring():
     
@@ -116,6 +118,22 @@ class Zzzscoring():
                               font = 'Calibri 12 bold', relief = RIDGE, fg = 'blue',
                               command = self.Select_ML_button)
         self.button_select.grid(row = 1 , column =1, padx = 15, pady = 10) 
+        
+        # Chekbox for time-dependency
+        
+        self.td_var = IntVar()
+        self.checkbox_td = Checkbutton(self.frame_ML, text = "Multi-to-one classifcation",
+                                  font = 'Calibri 12 bold', variable = self.td_var)
+        
+        self.checkbox_td.grid(row = 2, column = 0)
+        
+        # Chekbox for feature selection
+        
+        self.feat_select_var = IntVar()
+        self.checkbox_feat_select = Checkbutton(self.frame_ML, text = "Feature Selection",
+                                  font = 'Calibri 12 bold', variable = self.feat_select_var)
+        
+        self.checkbox_feat_select.grid(row = 3, column = 0)
         
 
     #%% ################### DEFINE FUNCTIONS OF BUTTONS #######################
@@ -388,6 +406,24 @@ class Zzzscoring():
                               font = 'Calibri 12 bold', relief = RIDGE, fg = 'blue',
                               command = self.Training_function)
         self.button_train.grid(row = 1 , column =3)
+        
+        #### ==============  multi-to-one classification flag ============ ####
+        
+        if int(self.td_var.get()) == 1:
+             
+            # Label
+            self.label_checkbox = Label(self.frame_ML, text = "Time-dependence (#epochs):",
+                                            font = 'Calibri 12 bold')
+            self.label_checkbox.grid(row = 2 , column = 2)
+            
+            # entry for td
+# =============================================================================
+#             self.td = IntVar()
+#             self.td.set(6)
+# =============================================================================
+            self.entry_td = Entry(self.frame_ML, text = " Enter the value here ", borderwidth = 8, width = 10)
+            self.entry_td.grid(row = 3, column = 2, padx = 15, pady = 10)
+         
         # SVM Hyperparameters
         if self.selected_ML == "SVM":
             self.kernel_ = StringVar()
@@ -516,6 +552,7 @@ class Zzzscoring():
                               font = 'Calibri 12 bold', relief = RIDGE, fg = 'blue',
                               command = self.show_results_function)
         self.button_show_results.grid(row = 1 , column =4)
+        
         # ========================== Plot conf mat ========================== #
         # Activate plot confusion Button
         self.button_plot_conf = Button(self.frame_ML, text = "Plot confusion mat", padx = 100, pady=20,
@@ -523,6 +560,12 @@ class Zzzscoring():
                               command = self.plot_conf_mat)
         self.button_plot_conf.grid(row = 1 , column =5)
         
+        # ========================== Activate plot hypnogram ================ #
+        self.button_plot_hyp = Button(self.frame_ML, text = "Plot hypnograms", padx = 100, pady=20,
+                              font = 'Calibri 12 bold', relief = RIDGE, fg = 'blue',
+                              command = self.plot_hyp_function)
+        self.button_plot_hyp.grid(row = 2 , column =4)
+                      
         #######=== Randomly shuffle subjects to choose train and test splits ===######
     
 # =============================================================================
@@ -587,8 +630,34 @@ class Zzzscoring():
         ################# FOR NOW WE IGNOR MOVEMENT AROUSAL ###################
         y_train = y_train[:,:5]
         y_test  = y_test[:,:5]
+        
+        # ========================= Time-dependency ========================= #
+        global X_train_td, X_test_td
+        if int(self.td_var.get()) == 1:
+            
+            X_train_td = self.Object.add_time_dependence_backward(X_train, n_time_dependence=int(self.entry_td.get()),padding_type = 'sequential')
+    
+            X_test_td  = self.Object.add_time_dependence_backward(X_test,  n_time_dependence=int(self.entry_td.get()),padding_type = 'sequential')
+            
+        # ======================== Feature selection ======================== #
+
+        self.y_train_td = self.Object.binary_to_single_column_label(y_train)
+        
+        # Check activation of flag
+        if int(self.feat_select_var.get()) == 1:
+            
+# =============================================================================
+#             tmp1,tmp2,self.selected_feats_ind = self.Object.FeatSelect_Boruta(self.X_train_td, y_train, max_iter = 50)
+#             X_train = self.X_train_td[:, self.selected_feats_ind]
+#             X_test  = self.X_test_td[:, self.selected_feats_ind]
+# =============================================================================
+            
+            tmp1,tmp2,self.selected_feats_ind = self.Object.FeatSelect_Boruta(X_train, self.y_train_td[:,0], max_iter = 50)
+            X_train = X_train[:, self.selected_feats_ind]
+            X_test  = X_test[:, self.selected_feats_ind]  
+                
         ######## ================= Apply chosen ML ================= ##########
-        global y_pred
+        global y_pred    
         # SVM
         if self.selected_ML == "SVM":
             
@@ -671,7 +740,12 @@ class Zzzscoring():
                       cmap=None,
                       normalize=True)
           
-        
+     #%% Plot hypnograms
+    def plot_hyp_function(self):
+        self.hyp_true = self.Object.binary_to_single_column_label(y_test)
+        self.hyp_pred = self.Object.binary_to_single_column_label(y_pred)
+        self.Object.plot_comparative_hyp(self.hyp_true, self.hyp_pred, mark_REM = 'active',
+                             Title = 'True Hypnogram')
 #%% Test section
 root = Tk()
 my_gui = Zzzscoring(root)
