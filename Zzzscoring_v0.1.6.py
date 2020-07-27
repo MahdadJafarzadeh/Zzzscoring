@@ -645,23 +645,20 @@ class Zzzscoring():
         # ========================= Time-dependency ========================= #
         global X_train_td, X_test_td
         if int(self.td_var.get()) == 1:
-            print(f'it comes to many to one section, n_td : {self.entry_td.get()} ')
+            print(f'Adding time-dependency ... n_td : {self.entry_td.get()} ')
             X_train_td = self.Object.add_time_dependence_backward(X_train, n_time_dependence=int(self.entry_td.get()),padding_type = 'sequential')
     
             X_test_td  = self.Object.add_time_dependence_backward(X_test,  n_time_dependence=int(self.entry_td.get()),padding_type = 'sequential')
             
+            # Assign new vals
+            X_train = X_train_td
+            X_test  = X_test_td
         # ======================== Feature selection ======================== #
 
         self.y_train_td = self.Object.binary_to_single_column_label(y_train)
         
         # Check activation of flag
         if int(self.feat_select_var.get()) == 1:
-            
-# =============================================================================
-#             tmp1,tmp2,self.selected_feats_ind = self.Object.FeatSelect_Boruta(self.X_train_td, y_train, max_iter = 50)
-#             X_train = self.X_train_td[:, self.selected_feats_ind]
-#             X_test  = self.X_test_td[:, self.selected_feats_ind]
-# =============================================================================
             
             tmp1,tmp2,self.selected_feats_ind = self.Object.FeatSelect_Boruta(X_train, self.y_train_td[:,0], max_iter = 50)
             X_train = X_train[:, self.selected_feats_ind]
