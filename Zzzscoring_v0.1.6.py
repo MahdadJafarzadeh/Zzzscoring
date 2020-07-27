@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
+"""
+Created on Wed Jun 24 00:23:30 2020
+
+@author: mahda
 
 # =============================================================================
-# Created on Thu May 28 12:16:48 2020
 # 
-# @author: mahjaf
+# Copyright (c) 2020 Mahdad Jafarzadeh
 # 
 # Zzzscoring: A GUI-based package for sleep scoring!
 # =============================================================================
+"""
 
 from tkinter import LabelFrame, Label, Button, filedialog, messagebox,OptionMenu, StringVar,DoubleVar
 from tkinter import *
@@ -75,8 +79,10 @@ class Zzzscoring():
         
         # Bar to ask for user's entry
         self.train_size = DoubleVar()
-        self.entry_train_size = Entry(self.frame_import, text = " Enter the value here ", borderwidth = 8, width = 10)
+        self.train_size.set(0.7)
+        self.entry_train_size = OptionMenu(self.frame_import, self.train_size, 0.6, 0.7, 0.8, 0.9)
         self.entry_train_size.grid(row = 1, column = 3, padx = 15, pady = 10)
+        self.entry_train_size.config(font= 'Calibri 10 bold', fg='black') 
         
         #### =================== Push apply to load data ==================####
         #Label to read data and extract features
@@ -217,35 +223,29 @@ class Zzzscoring():
 
     #####=================Retrieving information from data====================#####
             
-            DataInfo          = data.info
-            AvailableChannels = DataInfo['ch_names']
-            self.fs                = int(DataInfo['sfreq'])
+# =============================================================================
+#             DataInfo          = data.info
+#             AvailableChannels = DataInfo['ch_names']
+#             self.fs                = int(DataInfo['sfreq'])
+# =============================================================================
             
-    #####==================Choosing channels of interest======================#####
-            
-            # 1. The channels that need to be referenced
-            Mastoids          = ['TP10'] # Reference electrodes
-            RequiredChannels  = ['C3'] # main electrodes
-            
-            # 2. Channels that don't need to be referenced: --> Deactive
-           
-            Idx               = []
-            Idx_Mastoids      = []
-            
+
     #####================= Find index of required channels ===================#####
             
-            for indx, c in enumerate(AvailableChannels):
-                if c in RequiredChannels:
-                    Idx.append(indx)
-                elif c in Mastoids:
-                    Idx_Mastoids.append(indx)
+# =============================================================================
+#             for indx, c in enumerate(AvailableChannels):
+#                 if c in RequiredChannels:
+#                     Idx.append(indx)
+#                 elif c in Mastoids:
+#                     Idx_Mastoids.append(indx)
+# =============================================================================
         
     #####===== Sampling rate is 200hz; thus 1 epoch(30s) is 6000 samples =====#####
-                    
+            self.fs = 256
             T = 30 #secs
             len_epoch   = self.fs * T
             start_epoch = 0
-            n_channels  =  len(AvailableChannels)
+            n_channels  =  1
                
     #####============ Cut tail; use modulo to find full epochs ===============#####
         
@@ -258,7 +258,7 @@ class Zzzscoring():
             
     #####===================== Reading hypnogram data ========================#####
         
-            hyp = loadtxt(hypno_files_list[idx], delimiter="\t")
+            hyp = loadtxt(hypno_files_list[idx])
 
     ### Create sepereate data subfiles based on hypnogram (N1, N2, N3, NREM, REM) 
             tic      = time.time()
@@ -267,32 +267,36 @@ class Zzzscoring():
         
     # Calculate referenced channels: 
     
-            data_epoched_selected = data_epoched[Idx] - data_epoched[Idx_Mastoids]
+            #data_epoched_selected = data_epoched[Idx] - data_epoched[Idx_Mastoids]
             
     #####================= Find order of the selected channels ===============#####   
-            #Init
-            picked_channels = []
-            picked_refs     = []
-            List_Channels   = []
-            
-            # Find main channels
-            for jj,kk in enumerate(Idx):
-                picked_channels = np.append(picked_channels, AvailableChannels[kk])
-            # Find references
-            for jj,kk in enumerate(Idx_Mastoids):
-                picked_refs     = np.append(picked_refs, AvailableChannels[kk])
-            print(f'subject LK {c_subj} --> detected channels: {str(picked_channels)} -  {str(picked_refs)}')
-            self.log3_ = Label(self.log_win, text = "Dectected channels:"+str(picked_channels) +"-" +str(picked_refs)).pack()
-
-            # Create lis of channels
-            for kk in np.arange(0, len(Idx)):
-                List_Channels = np.append(List_Channels, picked_channels[kk] + '-' + picked_refs[kk])
+# =============================================================================
+#             #Init
+#             picked_channels = []
+#             picked_refs     = []
+#             List_Channels   = []
+#             
+#             # Find main channels
+#             for jj,kk in enumerate(Idx):
+#                 picked_channels = np.append(picked_channels, AvailableChannels[kk])
+#             # Find references
+#             for jj,kk in enumerate(Idx_Mastoids):
+#                 picked_refs     = np.append(picked_refs, AvailableChannels[kk])
+#             print(f'subject LK {c_subj} --> detected channels: {str(picked_channels)} -  {str(picked_refs)}')
+#             self.log3_ = Label(self.log_win, text = "Dectected channels:"+str(picked_channels) +"-" +str(picked_refs)).pack()
+# 
+#             # Create lis of channels
+#             for kk in np.arange(0, len(Idx)):
+#                 List_Channels = np.append(List_Channels, picked_channels[kk] + '-' + picked_refs[kk])
+# =============================================================================
             
         #%% Analysis section
         #####================= remove chanbnels without scroing ==================#####   
             
             # assign the proper data and labels
-            x_tmp_init = data_epoched_selected
+            #x_tmp_init = data_epoched_selected
+            x_tmp_init = data_epoched
+
             y_tmp_init = hyp
             
             #Define ssccoorriinngg object:
@@ -305,8 +309,8 @@ class Zzzscoring():
                                                       input_feats = x_tmp_init)
             
             # Remove disconnections
-            '''x_tmp, y_tmp =  self.Object.remove_disconnection(hypno_labels= y_tmp, 
-                                                        input_feats=x_tmp) '''
+            x_tmp, y_tmp =  self.Object.remove_disconnection(hypno_labels= y_tmp, 
+                                                        input_feats=x_tmp)
             
         #####============= Create a one hot encoding form of labels ==============##### 
         
@@ -322,7 +326,7 @@ class Zzzscoring():
               
         #####================== Extract the relevant features ====================#####    
             
-            for k in np.arange(np.shape(data_epoched_selected)[0]):
+            for k in np.arange(np.shape(data_epoched)[0]):
                 
                 feat_temp         = self.Object.FeatureExtraction_per_subject(Input_data = x_tmp[k,:,:])
                 self.Feat_all_channels = np.column_stack((self.Feat_all_channels,feat_temp))
@@ -335,31 +339,34 @@ class Zzzscoring():
             self.Object.Ensure_feature_label_length(self.Feat_all_channels, self.yy)
             
             # Defining dictionary to save features PER SUBJECT
-            subjects_dic["subject{}".format( c_subj[-11:-4])] = self.Feat_all_channels
+            subjects_dic["subject{}".format( c_subj)] = self.Feat_all_channels
             
             # Defining dictionary to save hypnogram PER SUBJECT
-            hyp_dic["hyp{}".format( c_subj[-11:-4])] = self.yy
+            hyp_dic["hyp{}".format( c_subj)] = self.yy
             
-            # Show picked channels per subject
-            dic_pciked_chans["subj{}".format(c_subj[-11:-4])] = List_Channels
-
+# =============================================================================
+#             # Show picked channels per subject
+#             dic_pciked_chans["subj{}".format(c_subj[-11:-4])] = List_Channels
+# 
+# =============================================================================
             
         #####=============== Removing variables for next iteration ===============#####      
-            del x_tmp, y_tmp, feat_temp
+            del x_tmp, y_tmp
             
             toc = time.time()
             
-            print('Feature extraction of subject { c_subj[-11:-4]} has been finished.')   
+            print(f'Feature extraction of subject { c_subj[-11:-4]} has been finished.')   
             self.log5_ = Label(self.log_win, text = "Feature extraction of subject "+str(c_subj[-11:-4])+" has been finished.").pack()
 
-        print('Total feature extraction of subjects took {tic_tot - time.time()} secs.')
+        #print(f'Total feature extraction of subjects took {tic_tot - time.time()} secs.')
     
 
     #%% Function: Import Hypnogram (Browse)
     def Apply_button(self):
         
+        print(f'Train size --> {str(self.train_size.get() * 100)}%')
         #### ======================= Get the train size ===================####
-        self.train_size = self.entry_train_size.get()
+        self.train_size = self.train_size.get()
         
         # Has the user loaded hypnos?!
         if not hypno_files_list:            
@@ -388,7 +395,8 @@ class Zzzscoring():
             self.label_apply4  = Label(self.frame_import, text = "Train size: "+str(self.train_size)+"\nData and hypnogram have received in a good order!\n Go to next section to proceed ...",
                                   fg = 'green', font = 'Helvetica 9 bold').grid(row = 2, column = 4)
             
-            subjects_dic, hyp_dic, dic_pciked_chans = self.Read_Preproc_FeatExtract()
+            self.Read_Preproc_FeatExtract()
+            
     #%% Function: Import Hypnogram (Browse)
     def Select_ML_button(self):     
         # Check the current ML flag
@@ -396,6 +404,9 @@ class Zzzscoring():
         # Define label
         self.label_select1 = Label(self.frame_ML, text = str(self.selected_ML) + " has been selected.\n Please adjust the folloiwng hypermarameters.",
                                   fg = 'green', font = 'Helvetica 9 bold').grid(row = 2, column = 1)  
+        
+        # Report current td val
+        print(f'Time dependence (0: deactive, 1: active) = {self.td_var.get()}')
         
         #### ============== Train the model and predict test ==============####
         self.label_train = Label(self.frame_ML, text = "Start Taining!",
@@ -416,15 +427,15 @@ class Zzzscoring():
                                             font = 'Calibri 12 bold')
             self.label_checkbox.grid(row = 2 , column = 2)
             
-            # entry for td
-# =============================================================================
-#             self.td = IntVar()
-#             self.td.set(6)
-# =============================================================================
-            self.entry_td = Entry(self.frame_ML, text = " Enter the value here ", borderwidth = 8, width = 10)
-            self.entry_td.grid(row = 3, column = 2, padx = 15, pady = 10)
-         
+            # Dropdown menu for td
+            
+            self.entry_td = IntVar()
+            self.entry_td.set(5)
+            self.drop_td = OptionMenu(self.frame_ML, self.entry_td, 1,2,3,4,5,6)
+            self.drop_td.grid(row = 3, column = 2)
+            self.drop_td.config(font= 'Calibri 10 bold', fg='blue') 
         # SVM Hyperparameters
+            
         if self.selected_ML == "SVM":
             self.kernel_ = StringVar()
             #init
@@ -519,7 +530,7 @@ class Zzzscoring():
         elif self.selected_ML == "Logistic regression":
             pass
   
-        
+        print(f'Time dependence : {self.entry_td.get()} epochs')
     #%% Function: Help pop-up
     def help_pop_up_func(self):
         
@@ -583,7 +594,7 @@ class Zzzscoring():
         
         for c_subj in data_files_list[0:self.n_train]:
             
-            self.tmp_name = c_subj[-11:-4]
+            self.tmp_name = c_subj
             
             # train hypnogram
             self.str_train_hyp  = 'hyp' + str(self.tmp_name)
@@ -607,7 +618,7 @@ class Zzzscoring():
         
         for c_subj in data_files_list[self.n_train:]:
             
-            self.tmp_name = c_subj[-11:-4]
+            self.tmp_name = c_subj
             # test hypnogram
             str_test_hyp  = 'hyp' + str(self.tmp_name)
             
@@ -634,7 +645,7 @@ class Zzzscoring():
         # ========================= Time-dependency ========================= #
         global X_train_td, X_test_td
         if int(self.td_var.get()) == 1:
-            
+            print(f'it comes to many to one section, n_td : {self.entry_td.get()} ')
             X_train_td = self.Object.add_time_dependence_backward(X_train, n_time_dependence=int(self.entry_td.get()),padding_type = 'sequential')
     
             X_test_td  = self.Object.add_time_dependence_backward(X_test,  n_time_dependence=int(self.entry_td.get()),padding_type = 'sequential')
