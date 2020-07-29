@@ -584,11 +584,11 @@ class Zzzscoring():
 #         
 # =============================================================================
         #######=============== Initialize train and test arrays ================#######
-        global X_train, X_test, y_train, y_test
+        global X_train, X_test, y_train
         X_train = np.empty((0, np.shape(self.Feat_all_channels)[1]))
         X_test  = np.empty((0, np.shape(self.Feat_all_channels)[1]))
         y_train = np.empty((0, np.shape(self.yy)[1]))
-        y_test  = np.empty((0, np.shape(self.yy)[1]))
+        self.y_test  = np.empty((0, np.shape(self.yy)[1]))
         
         ########======= Picking the train subjetcs and concatenate them =======########
         
@@ -631,7 +631,7 @@ class Zzzscoring():
             
             # Concatenate features and labels
             X_test = np.row_stack((X_test, self.tmp_x))
-            y_test = np.row_stack((y_test, self.tmp_y))
+            self.y_test = np.row_stack((self.y_test, self.tmp_y))
             
             # keep the subject id
             self.test_subjects_list.append(str_test_feat)
@@ -640,17 +640,16 @@ class Zzzscoring():
             #del self.tmp_x, self.tmp_y,self.tmp_name, self.str_test_feat, self.str_test_hyp
         ################# FOR NOW WE IGNOR MOVEMENT AROUSAL ###################
         y_train = y_train[:,:5]
-        y_test  = y_test[:,:5]
+        self.y_test  = self.y_test[:,:5]
         
         # ========================= Time-dependency ========================= #
-        global X_train_td, X_test_td
+        #global X_train_td, X_test_td
         if int(self.td_var.get()) == 1:
             print(f'Adding time-dependency ... n_td : {self.entry_td.get()} ')
             X_train_td = self.Object.add_time_dependence_backward(X_train, n_time_dependence=int(self.entry_td.get()),padding_type = 'sequential')
     
             X_test_td  = self.Object.add_time_dependence_backward(X_test,  n_time_dependence=int(self.entry_td.get()),padding_type = 'sequential')
             
-            # Assign new vals
             X_train = X_train_td
             X_test  = X_test_td
         # ======================== Feature selection ======================== #
@@ -669,7 +668,7 @@ class Zzzscoring():
         # SVM
         if self.selected_ML == "SVM":
             
-            y_pred = self.Object.KernelSVM_Modelling(X_train, y_train, X_test, y_test, kernel=self.kernel_.get())
+            y_pred = self.Object.KernelSVM_Modelling(X_train, y_train, X_test, self.y_test, kernel=self.kernel_.get())
             y_pred = np.expand_dims(y_pred, axis=1)
             # One hot encoding
             
@@ -677,24 +676,25 @@ class Zzzscoring():
         # Random forest    
         elif self.selected_ML == "Random forest":
             
-            y_pred = self.Object.RandomForest_Modelling(X_train, y_train, X_test, y_test, n_estimators = int(self.entry_n_estimator_RF.get()))
-            #y_pred = self.Object.RandomForest_Modelling(X_train, y_train, X_test, y_test, n_estimators = 10)
-            self.Object.multi_label_confusion_matrix(y_test, y_pred, print_results = 'on')
+            y_pred = self.Object.RandomForest_Modelling(X_train, y_train, X_test, self.y_test, n_estimators = int(self.entry_n_estimator_RF.get()))
+            self.Object.multi_label_confusion_matrix(self.y_test, y_pred, print_results = 'on')
+            
         # XGB
         elif self.selected_ML == "XGBoost":
-            y_pred = self.Object.XGB_Modelling(X_train, y_train,X_test, y_test, n_estimators = int(self.entry_n_estimator_xgb.get()), 
+            y_pred = self.Object.XGB_Modelling(X_train, y_train,X_test, self.y_test, n_estimators = int(self.entry_n_estimator_xgb.get()), 
                       max_depth=3, learning_rate=.1)
+            
         # ADABoost
         elif self.selected_ML == "ADABoost":
-            y_pred = self.Object.ADAboost_Modelling(X_train, y_train,X_test, y_test, n_estimators = int(self.entry_n_estimator_ada.get()))
+            y_pred = self.Object.ADAboost_Modelling(X_train, y_train,X_test, self.y_test, n_estimators = int(self.entry_n_estimator_ada.get()))
             
         # GRadient Boosting 
         elif self.selected_ML == "GradientBoosting":
-            y_pred = self.Object.gradient_boosting_classifier(X_train, y_train,X_test, y_test, 
+            y_pred = self.Object.gradient_boosting_classifier(X_train, y_train,X_test, self.y_test, 
                                      n_estimators = int(self.entry_n_estimator_gb.get()), learning_rate= 1.0, max_depth=1)
         # Randomized trees
         elif self.selected_ML == "Randomized trees":
-            y_pred = self.Object.Extra_randomized_trees(X_train, y_train, X_test,y_test, 
+            y_pred = self.Object.Extra_randomized_trees(X_train, y_train, X_test,self.y_test, 
                                                    n_estimators= int(self.entry_n_estimator_rt.get()), 
                                                    max_depth = None, min_samples_split =2,
                                                    max_features="sqrt")
@@ -717,15 +717,17 @@ class Zzzscoring():
         self.close_res_win = Button(self.results_win, text="Dismiss", command=self.results_win.destroy)
         self.close_res_win.pack()
         
-# =============================================================================
-#         try: 
-#             if np.shape(y_test)[1] != np.shape(y_pred)[1]:
-#                 self.y_true = self.Object.binary_to_single_column_label(y_test)
-#         except IndexError:
-#             y_test = self.Object.binary_to_single_column_label(y_test)
-# =============================================================================
+        # If the size of y_test & y_pred differ --> change them accordingly
+        
+        try: 
+            if np.shape(self.y_test)[1] != np.shape(y_pred)[1]:
+                self.y_test = self.Object.binary_to_single_column_label(self.y_test)
+
+        
+        except IndexError:
+            self.y_test = self.Object.binary_to_single_column_label(self.y_test)
             
-        self.mcm = multilabel_confusion_matrix(y_test, y_pred)
+        self.mcm = multilabel_confusion_matrix(self.y_test, y_pred)
         self.tn     = self.mcm[:, 0, 0]
         self.tp     = self.mcm[:, 1, 1]
         self.fn     = self.mcm[:, 1, 0]
@@ -743,15 +745,33 @@ class Zzzscoring():
     #%% Plot confusion matrix
     def plot_conf_mat(self):
             
-        self.Object.plot_confusion_matrix(y_test,y_pred, target_names = ['Wake','N1','N2','SWS','REM'],
+        self.Object.plot_confusion_matrix(self.y_test,y_pred, target_names = ['Wake','N1','N2','SWS','REM'],
                       title='Confusion matrix of ssccoorriinngg algorithm',
                       cmap=None,
                       normalize=True)
           
-     #%% Plot hypnograms
+    #%% Plot hypnograms
     def plot_hyp_function(self):
-        self.hyp_true = self.Object.binary_to_single_column_label(y_test)
-        self.hyp_pred = self.Object.binary_to_single_column_label(y_pred)
+        
+# =============================================================================
+#         # If the size of y_test & y_pred differ --> change them accordingly
+#         
+#         try: 
+#             if np.shape(self.y_test)[1] != np.shape(y_pred)[1]:
+#                 self.y_test = self.Object.binary_to_single_column_label(self.y_test)
+# 
+#         
+#         except IndexError:
+#             self.y_test = self.Object.binary_to_single_column_label(self.y_test)
+#             
+#         self.hyp_true = self.Object.binary_to_single_column_label(self.y_test)
+#         
+#         if np.shape(y_pred)[1] == 1:
+#             self.hyp_pred = self.Object.binary_to_single_column_label(y_pred)
+#         else:
+# =============================================================================
+        self.hyp_true = self.y_test
+        self.hyp_pred = y_pred
         self.Object.plot_comparative_hyp(self.hyp_true, self.hyp_pred, mark_REM = 'active',
                              Title = 'True Hypnogram')
 #%% Test section
