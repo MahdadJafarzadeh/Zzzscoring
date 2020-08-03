@@ -212,24 +212,21 @@ class Zzzscoring():
             self.log1_ = Label(self.log_win, text = "Analyzing data: " + str(c_subj[-11:-4]) + "\tPlease wait ...").pack()
             print (f'Analyzing data: {c_subj[-11:-4]}')
             ## Read in data
-            file     = data_files_list[idx]
+            self.file     = data_files_list[idx]
             tic      = time.time()
-            data     = mne.io.read_raw_edf(file)
+            self.data     = mne.io.read_raw_edf(self.file)
             # Data raw EEG --> Deactive
             # data.plot(duration = 30, highpass = .3 , lowpass = 25 )
-            raw_data = data.get_data()
+            self.raw_data = self.data.get_data()
             print('Time to read EDF: {}'.format(time.time()-tic))
             self.log2_ = Label(self.log_win, text = "Time to read EDF data (s): " +str(np.round(time.time()-tic))).pack()
 
     #####=================Retrieving information from data====================#####
             
-# =============================================================================
-#             DataInfo          = data.info
-#             AvailableChannels = DataInfo['ch_names']
-#             self.fs                = int(DataInfo['sfreq'])
-# =============================================================================
+            self.DataInfo          = self.data.info
+            self.AvailableChannels = self.DataInfo['ch_names']            
+            self.fs                = int(self.DataInfo['sfreq'])
             
-
     #####================= Find index of required channels ===================#####
             
 # =============================================================================
@@ -241,21 +238,31 @@ class Zzzscoring():
 # =============================================================================
         
     #####===== Sampling rate is 200hz; thus 1 epoch(30s) is 6000 samples =====#####
-            self.fs = 256
+            
             T = 30 #secs
             len_epoch   = self.fs * T
             start_epoch = 0
-            n_channels  =  1
+            n_channels  =  len(self.AvailableChannels)
+            
                
     #####============ Cut tail; use modulo to find full epochs ===============#####
         
-            raw_data = raw_data[:, 0:raw_data.shape[1] - raw_data.shape[1]%len_epoch]
-            
+            self.raw_data = self.raw_data[:, 0:self.raw_data.shape[1] - self.raw_data.shape[1]%len_epoch]
+            print('extra tail of data has been successfully removed!')
     #####========== Reshape data [n_channel, len_epoch, n_epochs] ============#####
-            data_epoched = np.reshape(raw_data,
+            data_epoched = np.reshape(self.raw_data,
                                       (n_channels, len_epoch,
-                                       int(raw_data.shape[1]/len_epoch)), order='F' )
+                                       int(self.raw_data.shape[1]/len_epoch)), order='F' )
             
+            # Find corresponidng indices of the required chans
+            self.Idx = []
+            
+            # Find index of required channel(s)
+            for indx, c in enumerate(self.AvailableChannels):
+                if c in self.RequiredChannels:
+                    self.Idx.append(indx) 
+                    
+            data_epoched = data_epoched[self.Idx, :]
     #####===================== Reading hypnogram data ========================#####
         
             hyp = loadtxt(hypno_files_list[idx])
@@ -301,6 +308,7 @@ class Zzzscoring():
             
             #Define ssccoorriinngg object:
             self.Object = ssccoorriinngg(filename='', channel='', fs = self.fs, T = 30)
+            
             # Ensure equalituy of length for arrays:
             self.Object.Ensure_data_label_length(x_tmp_init, y_tmp_init)
             
@@ -327,12 +335,13 @@ class Zzzscoring():
         #####================== Extract the relevant features ====================#####    
             
             for k in np.arange(np.shape(data_epoched)[0]):
-                
+                print(f'Extracting features from channel {k+1} of subject { c_subj[-11:-4]} ... Please wait ...')
                 feat_temp         = self.Object.FeatureExtraction_per_subject(Input_data = x_tmp[k,:,:])
                 self.Feat_all_channels = np.column_stack((self.Feat_all_channels,feat_temp))
+                print(f'Feature extracion from channel {k+1} of subject { c_subj[-11:-4]} is done!')
                 
             toc = time.time()
-            print(f'Features of subject { c_subj[-11:-4]} were successfully extracted in: {toc-tic} secs')
+            print(f'Full Features of subject { c_subj[-11:-4]} were successfully extracted in: {toc-tic} secs')
             self.log4_ = Label(self.log_win, text = "Features of subject"+ str(c_subj[-11:-4])+" were successfully extracted in (secs):"+str(np.round(toc-tic))).pack()
 
             # Double check the equality of size of arrays
@@ -364,9 +373,14 @@ class Zzzscoring():
     #%% Function: Import Hypnogram (Browse)
     def Apply_button(self):
         
+        # init channel list
+        self.checkbox_ch     = dict()
+        self.available_ch_val = dict()
+        self.RequiredChannels = np.empty((0,1))
+        
         print(f'Train size --> {str(self.train_size.get() * 100)}%')
         #### ======================= Get the train size ===================####
-        self.train_size = self.train_size.get()
+        #self.train_size = self.train_size.get()
         
         # Has the user loaded hypnos?!
         if not hypno_files_list:            
@@ -382,21 +396,95 @@ class Zzzscoring():
             self.label_apply1  = Label(self.frame_import, text = "No train size is entered!",
                                   fg = 'red', font = 'Helvetica 9 bold').grid(row = 2, column = 4)
             
-        elif float(self.train_size) > 0.99 or float(self.train_size) < 0.01 :
-            self.label_apply1  = Label(self.frame_import, text = "Invalid train size! (acceptable range:0-1)",
-                                  fg = 'red', font = 'Helvetica 9 bold').grid(row = 2, column = 4)
+# =============================================================================
+#         elif float(self.train_size) > 0.99 or float(self.train_size) < 0.01 :
+#             self.label_apply1  = Label(self.frame_import, text = "Invalid train size! (acceptable range:0-1)",
+#                                   fg = 'red', font = 'Helvetica 9 bold').grid(row = 2, column = 4)
+# =============================================================================
         
         # Do the imported data an hypnos have the same amount of inputs?    
         elif len(data_files_list) != len(hypno_files_list):
             self.label_apply3  = Label(self.frame_import, text = "Size of the loaded hypons and EDF files do not match! Please recheck ...",
                                   fg = 'red', font = 'Helvetica 9 bold').grid(row = 2, column = 4)
         # Else --> Go next
-        if len(data_files_list) == len(hypno_files_list) and float(self.train_size)<.99 and float(self.train_size)>0.01:
-            self.label_apply4  = Label(self.frame_import, text = "Train size: "+str(self.train_size)+"\nData and hypnogram have received in a good order!\n Go to next section to proceed ...",
-                                  fg = 'green', font = 'Helvetica 9 bold').grid(row = 2, column = 4)
+        elif len(data_files_list) == len(hypno_files_list):
             
-            self.Read_Preproc_FeatExtract()
+            #### =================== Create setting window ================####
+            self.setting_win = Toplevel()
+            self.setting_win.title("Setting windows")
             
+            my_canvas = Canvas(self.setting_win)
+            my_canvas.pack(side= LEFT, fill = BOTH, expand=1)
+            my_scrollbar = Scrollbar(self.setting_win, orient = VERTICAL, command = my_canvas.yview)
+            my_scrollbar.pack(side = RIGHT, fill = Y)
+            my_canvas.configure(yscrollcommand = my_scrollbar.set)
+            my_canvas.bind('<Configure>', lambda e: my_canvas.configure(scrollregion = my_canvas.bbox("all")))
+            second_frame = Frame(my_canvas)
+            my_canvas.create_window((0,0), window = second_frame, anchor = "nw")
+            
+            # close button 
+            self.close_setting_win = Button(second_frame, text="Dismiss", command=self.setting_win.destroy)
+            self.close_setting_win.pack()
+            
+            self.label_apply4  = Label(second_frame, text = "Train size: "+str(self.train_size.get())+"\nData and hypnogram have received in a good order!\n",
+                                  fg = 'green', font = 'Helvetica 14 bold').pack()
+            
+            # ~~~~~~~~~~~~~~~~ Read the first EDF to analyze info ~~~~~~~~~~~ #
+            # read
+            self.tmp_file = data_files_list[0]
+            self.tmp_data = mne.io.read_raw_edf(self.tmp_file)
+            self.tmp_raw_data = self.tmp_data.get_data()
+            
+            # channels
+            self.AvailableChannels = self.tmp_data.info['ch_names']
+            
+            # label: select channels
+            self.label_setting_win = Label(second_frame, text= "Please select the required channel(s):\n", font = 'Calibri 14 bold')
+            self.label_setting_win.pack()
+            
+            # Create ok button
+            self.button_setting_ok = Button(second_frame, text = "OK!", padx = 80, pady=20,
+                              font = 'Calibri 12 bold', relief = RIDGE, fg = 'blue',
+                              command = self.ok_setting_button_func).pack()
+            
+            # checklist: select channels
+            for c in np.arange(len(self.AvailableChannels)):
+                
+                # init a variable for checkbox
+                self.available_ch_val['ch'+str(c)] = IntVar()
+                
+                # chebox is activated by default
+                self.available_ch_val['ch'+str(c)].set(0)
+                
+                # create checkbox
+                self.checkbox_ch['ch'+str(c)] = Checkbutton(second_frame, text = str(self.AvailableChannels[c]),
+                                  font = 'Calibri 12 bold', variable = self.available_ch_val['ch'+str(c)]).pack()
+                
+            
+            
+    #%% Ok button in Setting window
+    def ok_setting_button_func(self):
+        
+        # Init
+        self.RequiredChannels = np.empty((0,1))
+        
+        # Find required chans
+        for c in np.arange(len(self.AvailableChannels)):
+                
+            # get checkbox val
+            #self.available_ch_val['ch'+str(c)] = self.available_ch_val['ch'+str(c)].get()
+            
+            # If the channel is selected --> add it as required chan
+            if int(self.available_ch_val['ch'+str(c)].get()) == 1:
+                self.RequiredChannels = np.row_stack((self.RequiredChannels, self.AvailableChannels[c]))
+            
+        print(f'The following channels have been selected: {self.RequiredChannels}')
+        
+        # Start with pre-processing and feature extraction
+        self.Read_Preproc_FeatExtract()
+        
+        self.setting_win.destroy()
+        
     #%% Function: Import Hypnogram (Browse)
     def Select_ML_button(self):     
         # Check the current ML flag
@@ -551,7 +639,7 @@ class Zzzscoring():
     def Training_function(self):
         # Training perentage
         
-        self.n_train = round(float(self.train_size) * len(data_files_list))
+        self.n_train = round(float(self.train_size.get()) * len(data_files_list))
         
         # ========================== Show reuslt ============================ #
         # Label
