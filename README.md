@@ -13,8 +13,8 @@ The results can be shown in terms of:
 * Metrics, namely: Accuracy, Recall, Precision, F1-score (overall and per class)
 * Plotting confusion matrix
 * Plotting comparative hypnogram
-* Plotting spectrogram (to do)
-* Power spectral density (to do)
+* Plotting comparative spectrogram (to do)
+* Power comparative spectral density (to do)
 
 ### Functional Version 
 We recommend to make use of the version 1.7 as the latest stable version.
