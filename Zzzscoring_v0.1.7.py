@@ -110,7 +110,7 @@ class Zzzscoring():
         # Dropdown menu
         self.selected_ML = StringVar()
         self.selected_ML.set("Random forest")
-        self.drop = OptionMenu(self.frame_ML, self.selected_ML, "SVM", "Random forest","XGBoost","Logistic regression", "Naive bayes", "Randomized trees","GradientBoosting", "ADABoost")
+        self.drop = OptionMenu(self.frame_ML, self.selected_ML, "ANN (MLP)", "SVM", "Random forest","XGBoost","Logistic regression", "Naive bayes", "Randomized trees","GradientBoosting", "ADABoost")
         self.drop.grid(row = 1, column = 0)
         self.drop.config(font= 'Calibri 10 bold', fg='blue') 
         
@@ -426,7 +426,7 @@ class Zzzscoring():
             self.close_setting_win = Button(second_frame, text="Dismiss", command=self.setting_win.destroy)
             self.close_setting_win.pack()
             
-            self.label_apply4  = Label(second_frame, text = "Train size: "+str(self.train_size.get())+"\nData and hypnogram have received in a good order!\n",
+            self.label_apply4  = Label(second_frame, text = "Train size: "+str(self.train_size.get())+"\nData and hypnogram have been received in a good order!\n",
                                   fg = 'green', font = 'Helvetica 14 bold').pack()
             
             # ~~~~~~~~~~~~~~~~ Read the first EDF to analyze info ~~~~~~~~~~~ #
@@ -442,10 +442,7 @@ class Zzzscoring():
             self.label_setting_win = Label(second_frame, text= "Please select the required channel(s):\n", font = 'Calibri 14 bold')
             self.label_setting_win.pack()
             
-            # Create ok button
-            self.button_setting_ok = Button(second_frame, text = "OK!", padx = 80, pady=20,
-                              font = 'Calibri 12 bold', relief = RIDGE, fg = 'blue',
-                              command = self.ok_setting_button_func).pack()
+
             
             # checklist: select channels
             for c in np.arange(len(self.AvailableChannels)):
@@ -460,7 +457,10 @@ class Zzzscoring():
                 self.checkbox_ch['ch'+str(c)] = Checkbutton(second_frame, text = str(self.AvailableChannels[c]),
                                   font = 'Calibri 12 bold', variable = self.available_ch_val['ch'+str(c)]).pack()
                 
-            
+            # Create ok button
+            self.button_setting_ok = Button(second_frame, text = "OK!", padx = 80, pady=20,
+                              font = 'Calibri 12 bold', relief = RIDGE, fg = 'blue',
+                              command = self.ok_setting_button_func).pack()
             
     #%% Ok button in Setting window
     def ok_setting_button_func(self):
@@ -499,12 +499,12 @@ class Zzzscoring():
         #### ============== Train the model and predict test ==============####
         self.label_train = Label(self.frame_ML, text = "Start Taining!",
                                         font = 'Calibri 12 bold')
-        self.label_train.grid(row = 0 , column =3)
+        self.label_train.grid(row = 0 , column =4)
         # Activate train Button
         self.button_train = Button(self.frame_ML, text = "Train model!", padx = 100, pady=20,
                               font = 'Calibri 12 bold', relief = RIDGE, fg = 'blue',
                               command = self.Training_function)
-        self.button_train.grid(row = 1 , column =3)
+        self.button_train.grid(row = 1 , column =4)
         
         #### ==============  multi-to-one classification flag ============ ####
         
@@ -513,14 +513,14 @@ class Zzzscoring():
             # Label
             self.label_checkbox = Label(self.frame_ML, text = "Time-dependence (#epochs):",
                                             font = 'Calibri 12 bold')
-            self.label_checkbox.grid(row = 2 , column = 2)
+            self.label_checkbox.grid(row = 2 , column = 3)
             
             # Dropdown menu for td
             
             self.entry_td = IntVar()
             self.entry_td.set(5)
             self.drop_td = OptionMenu(self.frame_ML, self.entry_td, 1,2,3,4,5,6)
-            self.drop_td.grid(row = 3, column = 2)
+            self.drop_td.grid(row = 3, column = 3)
             self.drop_td.config(font= 'Calibri 10 bold', fg='blue') 
         # SVM Hyperparameters
             
@@ -610,6 +610,63 @@ class Zzzscoring():
             # Assign the value to send to classifier
             #self.n_estimator_rt = self.entry_n_estimator_rt.get()
         
+        # Multi-layer Perceptrons ANN
+        elif self.selected_ML == "ANN (MLP)":
+            
+            # ~~~~~~~~~~~~ Defininging required inputs from user ~~~~~~~~~~~~~#
+            # units of 1st hidden layer
+            self.units_h1   = IntVar()
+            
+            # units of 2nd hidden layer
+            self.units_h2   = IntVar()
+            
+            # epochs
+            self.epochs     = IntVar()
+            
+            # Batch size
+            self.batch_size = IntVar()
+            
+            # ~~~~~~~~~~~~~~ Defining labels ~~~~~~~~~~~~~~~~~~~#
+            # units_h1 - LABEL
+            self.label_units_h1   = Label(self.frame_ML,text = "Neurons in 1st hidden layer:",\
+                                              font = 'Calibri 10 bold')
+            self.label_units_h1.grid(row = 0, column = 2, padx = 15, pady = 10)
+            
+            # ===== units_h1 - OptionMenu ===== #
+            self.units_h1_entry   = OptionMenu(self.frame_ML, self.units_h1, 10, 25, 50, 75, 100, 150, 200, 250, 500, 1000)
+            self.units_h1_entry.grid(row = 1, column = 2, padx = 15, pady = 10)
+            self.units_h1_entry.config(font= 'Calibri 10 bold', fg='black') 
+            
+            # units_h2 - LABEL
+            self.label_units_h2   = Label(self.frame_ML,text = "Neurons in 2nd hidden layer:",\
+                                              font = 'Calibri 10 bold')
+            self.label_units_h2.grid(row = 2, column = 2, padx = 15, pady = 10)
+            
+            # ===== units_h2 - OptionMenu ===== #
+            self.units_h2_entry   = OptionMenu(self.frame_ML, self.units_h2, 10, 25, 50, 75, 100, 150, 200, 250, 500, 1000)
+            self.units_h2_entry.grid(row = 3, column = 2, padx = 15, pady = 10)
+            self.units_h2_entry.config(font= 'Calibri 10 bold', fg='black') 
+            
+            # epochs - LABEL
+            self.label_epochs     =  Label(self.frame_ML,text = "# epochs:",\
+                                              font = 'Calibri 10 bold')
+            self.label_epochs.grid(row = 4, column = 2, padx = 15, pady = 10)
+            
+            # ===== Epochs - OptionMenu ===== #
+            self.epochs_entry   = OptionMenu(self.frame_ML, self.epochs, 10, 25, 50, 75, 100, 150, 200, 250, 500, 1000)
+            self.epochs_entry.grid(row = 5, column = 2, padx = 15, pady = 10)
+            self.epochs_entry.config(font= 'Calibri 10 bold', fg='black') 
+            
+            # Batch size - LABEL
+            self.label_batch_size = Label(self.frame_ML,text = "Batch Size:",\
+                                              font = 'Calibri 10 bold')
+            self.label_batch_size.grid(row = 6, column = 2, padx = 15, pady = 10) 
+            
+            # ====== Batch size - OptionMenu ======#
+            self.batch_size_entry   = OptionMenu(self.frame_ML, self.batch_size, 10, 25, 50, 75, 100, 150, 200, 250, 500, 1000)
+            self.batch_size_entry.grid(row = 7, column = 2, padx = 15, pady = 10)
+            self.batch_size_entry.config(font= 'Calibri 10 bold', fg='black') 
+                
         # Naive Bayes    
         elif self.selected_ML == "Naive Bayes":
             pass
@@ -644,26 +701,26 @@ class Zzzscoring():
         # ========================== Show reuslt ============================ #
         # Label
         self.label_results = Label(self.frame_ML, text = "Train and prediction finished!",
-                                        font = 'Calibri 12 bold')
+                                        font = 'Calibri 12 bold', fg = 'green')
         self.label_results.grid(row = 0 , column =4)
         # Activate results Button
         self.button_show_results   = Button(self.frame_ML, text = "Show results", padx = 80, pady=15,
                               font = 'Calibri 12 bold', relief = RIDGE, fg = 'blue',
                               command = self.show_results_function)
-        self.button_show_results.grid(row = 1 , column =4)
+        self.button_show_results.grid(row = 1 , column =5)
         
         # ========================== Plot conf mat ========================== #
         # Activate plot confusion Button
         self.button_plot_conf = Button(self.frame_ML, text = "Plot confusion mat", padx = 80, pady=15,
                               font = 'Calibri 12 bold', relief = RIDGE, fg = 'blue',
                               command = self.plot_conf_mat)
-        self.button_plot_conf.grid(row = 1 , column =5)
+        self.button_plot_conf.grid(row = 2 , column =5)
         
         # ========================== Activate plot hypnogram ================ #
         self.button_plot_hyp = Button(self.frame_ML, text = "Plot hypnograms", padx = 80, pady=15,
                               font = 'Calibri 12 bold', relief = RIDGE, fg = 'blue',
                               command = self.plot_hyp_function)
-        self.button_plot_hyp.grid(row = 2 , column =4)
+        self.button_plot_hyp.grid(row = 3 , column =5)
                       
         #######=== Randomly shuffle subjects to choose train and test splits ===######
     
@@ -786,6 +843,14 @@ class Zzzscoring():
                                                    n_estimators= int(self.entry_n_estimator_rt.get()), 
                                                    max_depth = None, min_samples_split =2,
                                                    max_features="sqrt")
+            
+        # ANN - Multi-layer perceprton
+        elif self.selected_ML == "ANN (MLP)":
+            y_pred = self.Object.ANN_classifier(X_train, y_train,X_test, units_h1 = int(self.units_h1.get()),\
+                  units_h2 = int(self.units_h2.get()), units_output = 5, activation_out = 'softmax',\
+                  init = 'uniform', activation = 'relu', optimizer = 'adam',
+                  loss = 'mean_squared_logarithmic_error', metrics = ['accuracy'],
+                  h3_status = 'deactive', units_h3 = 50, epochs = int(self.epochs.get()), batch_size = int(self.batch_size.get()))
 
         
     #%% Def show_results function

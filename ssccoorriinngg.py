@@ -1045,6 +1045,50 @@ class ssccoorriinngg():
         return y_pred
     
     #%% ANN
+    def ANN_classifier(self, X_train, y_train,X_test, units_h1, units_h2, units_output, activation_out,
+                  init = 'uniform', activation = 'relu', optimizer = 'adam',
+                  loss = 'mean_squared_logarithmic_error', metrics = ['accuracy'],
+                  h3_status = 'deactive', units_h3 = 50, epochs = 10, batch_size = 32):
+        # Importing the Keras libraries and packages
+        import keras
+        from keras.models import Sequential
+        from keras.layers import Dense, Dropout, BatchNormalization
+        
+        # Initialising the ANN
+        classifier = Sequential()
+        
+        # Adding the input layer and the first hidden layer
+        classifier.add(Dense(units = units_h1, init = init, activation = activation, input_dim = np.shape(X_train)[1]))
+        
+        # Add dropout and batch normalization
+        classifier.add(BatchNormalization())
+        classifier.add(Dropout(0.3))
+        
+        # Adding the second hidden layer
+        classifier.add(Dense(units = units_h2 , init = init, activation = activation))
+        
+        # Add dropout and batch normalization
+        classifier.add(BatchNormalization())
+        classifier.add(Dropout(0.3))
+        
+        # Adding the third hidden layer
+        if h3_status == 'active':
+            classifier.add(Dense(units = units_h3 , init = init, activation = activation))
+            
+        # Adding the output layer
+        classifier.add(Dense(units = units_output, init = init, activation = activation_out))
+        
+        # Compiling the ANN
+        classifier.compile(optimizer = optimizer, loss = loss , metrics = metrics)
+        
+        # Fit to train
+        classifier.fit(X_train, y_train, epochs = epochs, batch_size = batch_size)
+        
+        # Predict
+        y_pred = classifier.predict_classes(X_test)
+        
+        return y_pred
+    #%% ANN
     def ANN_Modelling(self, X, y, units_h1,  input_dim, units_h2, units_output,
                   init = 'uniform', activation = 'relu', optimizer = 'adam',
                   loss = 'binary_crossentropy', metrics = ['accuracy'],
